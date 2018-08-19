@@ -1,0 +1,67 @@
+<?php
+require_once $_SERVER['DOCUMENT_ROOT'] . "/helper/paths.php";
+require_once WEBROOT . "/helper/database.php";
+session_start();
+	
+if (!isset($_SESSION["username"])) {
+    header("location: /login.php?redirect=" .
+	   urlencode($_SERVER['REQUEST_URI']));
+    die();
+}
+
+if (!isset($_GET["id"]) || ! filter_var($_GET["id"], FILTER_VALIDATE_INT)) {
+    die("Invalid Request");
+}
+
+$id = $_GET["id"];
+$conn = db_connect();
+$stmt = $conn->prepare('SELECT postTitle, author FROM posts WHERE postID=?');
+$stmt->bind_param('i', $id);
+$stmt->execute();
+$stmt->bind_result($postTitle, $author);
+
+if (! $stmt->fetch()) {
+    die("Post not found");
+}
+if ($author !== $_SESSION['userID']) {
+    die("You do not have permissions to delete this post.");
+}
+$postTitle = json_encode($postTitle);
+$stmt->close();
+
+if (!isset($_GET['confirm'])) {
+   echo <<<EOTJAVASCRIPT
+<script type="text/javascript">
+    if (confirm("Are you sure you want to delete " + $postTitle)) {
+      window.location.href = '?confirm&id=' + '$id';
+    } else {
+      window.location.href = '/posts/viewpost.php?id=' + '$id';
+    }
+</script>
+EOTJAVASCRIPT;
+}
+
+if (isset($_GET['confirm'])) {
+    $conn->query('DELETE FROM posts WHERE postID=' . $id);
+    if (! $conn->error) {
+	echo <<<EOTJAVASCRIPT
+<script type="text/javascript">
+    alert("Post deleted.");
+    window.location.href = '/index.php';
+</script>
+EOTJAVASCRIPT;
+
+    } else {
+	echo <<<EOTJAVASCRIPT
+<script type="text/javascript">
+    alert("Post could not be deleted.");
+    window.location.href = '/posts/viewpost.php?id=' + '$id';
+</script>
+EOTJAVASCRIPT;
+    }
+}
+$conn->close();
+
+?>
+
+

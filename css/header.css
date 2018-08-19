@@ -1,0 +1,49 @@
+#header {
+    padding: 0px;
+}
+
+#header ul {
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background-color: #555;
+}
+
+#header li {
+    float: left;
+}
+
+#header li.right {
+    float: right;
+    background-color: #444;
+}
+
+#header #welcome {
+    float: right;
+    font-style: oblique;
+    font-size: 85%;
+    color: #222;
+    margin: 4px;
+    padding: 0px;
+}
+
+#header li a {
+    display: block;
+    color: white;
+    text-align: center;
+    padding: 14px 16px;
+    text-decoration: none;
+}
+
+#header li a:hover {
+    background-color: #000;
+}
+
+#header li#signup a:hover, #header li#login a:hover {
+    background-color:#090;
+}
+
+#header li#logout a:hover {
+    background-color: #E00;
+}

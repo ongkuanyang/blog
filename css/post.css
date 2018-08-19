@@ -1,0 +1,37 @@
+.post .postTitle{
+    margin: 0px;
+}
+
+.post .postTitle a {
+    text-decoration: none;
+    
+}
+
+.post .postTitle a:visited {
+    color: black;
+}
+
+.post .postTitle a:hover {
+    color: #555;
+}
+
+.post .postdet {
+    margin: 0px;
+    font-size: 80%;
+    color: #888;
+}
+
+.post .postControl a {
+    text-decoration: none;
+    font-weight: bold;
+    margin-right: 5px;
+    font-size: 80%;
+    color: #33F;
+}
+
+.post .postControl a:hover {
+    color: #00F;
+}
+
+
+    

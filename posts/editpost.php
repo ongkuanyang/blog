@@ -1,0 +1,120 @@
+<?php
+require_once $_SERVER['DOCUMENT_ROOT'] . "/helper/paths.php";
+require_once WEBROOT . "/helper/database.php";
+require_once WEBROOT . '/library/HTMLPurifier.auto.php';
+
+// Create HTMLPurifie
+
+$config = HTMLPurifier_Config::createDefault();
+$purifier = new HTMLPurifier($config);
+session_start();
+
+$error = ""; // Error to be displayed if input is invalid
+
+if (!isset($_SESSION["username"])) { // Check if user is logged in, else redirect
+    header("location: /login.php?redirect=" .
+	   urlencode($_SERVER['REQUEST_URI']));
+    die();
+}
+
+// Check if GET id is set and is integer
+if (!isset($_GET["id"]) || ! filter_var($_GET["id"], FILTER_VALIDATE_INT)) {
+    die("Invalid Request");
+}
+
+// Retrieve post from database
+
+$id = $_GET["id"];
+$conn = db_connect();
+$stmt = $conn->prepare('SELECT * FROM posts WHERE postID=?');
+$stmt->bind_param('i', $id);
+$stmt->execute();
+
+// Bind post content to variables that are will be displayed as default values in the form
+$stmt->bind_result($postID, $postTitle, $postDesc, $postCont, $postDate, $author);
+
+if (! $stmt->fetch()) { // If post is not found
+    die("Post not found");
+}
+if ($author !== $_SESSION['userID']) { // If user is not author of post
+    die("You do not have permissions to edit this post.");
+}
+$stmt->close();
+
+
+$name = $_SESSION["name"];
+$userid = $_SESSION["userID"];
+
+// UPDATE database with post
+
+if (isset($_POST["postcont"])) {
+    $postcont = $purifier->purify($_POST["postcont"]);
+    $posttitle = $_POST["posttitle"];
+    $postdesc = $_POST["postdesc"];
+    if ($postcont === "" || $posttitle === "") {
+	$error = "Error. Post and Post Title cannot be empty. Try again.";
+    } else {
+	$stmt = $conn->prepare('UPDATE posts SET postTitle = ?, postDesc = ?, postCont = ? ' .
+			       'WHERE postID = ?');
+	$stmt->bind_param('sssi', $posttitle, $postdesc, $postcont, $id);
+	$stmt->execute();
+
+	if ($stmt->error) {
+	    $error = 'Database erorr. Please try again. <br />' .
+		     nl2br(htmlentities($stmt->error));
+	    $stmt->close();
+	    $conn->close();
+	} else {
+	    $stmt->close();
+	    $conn->close();
+	    header("Location: /posts/viewpost.php?id=$id");
+	    die();
+	}
+    }
+}
+?>
+
+<!DOCTYPE html>
+<html>
+    <head>
+	<title>Edit Post</title>
+	<link href="/css/main.css" type="text/css" rel="stylesheet" />
+	<script src="//cdn.tinymce.com/4/tinymce.min.js"></script>
+	<script type="text/javascript">
+	 tinymce.init({selector: '#postcont',
+		       plugins: 'lists link',
+		       target_list: false,
+		       init_instance_callback: "insert_contents"});
+	 function insert_contents(inst) {
+	     inst.setContent(<?php echo json_encode($postCont); ?>);
+	 }
+	</script>
+    </head>
+    <body>
+	<header id="header">
+	    <?php require_once '/srv/http/views/header.php' ?>
+	</header>
+	<main>
+	    <div class="error">
+		<?php echo htmlspecialchars($error) ?>
+	    </div>
+	    <form method="post" action="editpost.php?id=<?php echo $id; ?>">
+		<label>
+		    Title:
+		    <input type="text" id="posttitle" name="posttitle"
+			   value ="<?php echo htmlspecialchars($postTitle); ?>" required />
+		</label>
+		<label>
+		    Description:
+		    <input type="text" id="postdesc" name="postdesc"
+			   value ="<?php echo htmlspecialchars($postDesc); ?>" required />
+		</label>
+		<label>
+		    Enter Post here:
+		    <textarea id="postcont" name="postcont"></textarea>
+		</label>
+		<input type="submit" value="Post" />
+	    </form>
+	</main>
+    </body>
+</html>
